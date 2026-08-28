@@ -26,18 +26,12 @@ func NewReadOnlyDB(db *gorm.DB, cfg *config.Config) *ReadOnlyDB {
 
 func (r *ReadOnlyDB) ListTables() ([]string, error) {
 	var tables []string
-
 	switch r.config.Driver {
 	case "mysql", "tidb":
-		var result []struct {
-			TableName string `gorm:"column:Tables_in_database"`
-		}
-		if err := r.db.Raw("SHOW TABLES").Scan(&result).Error; err != nil {
-			return nil, fmt.Errorf("failed to list tables: %w", err)
-		}
-		for _, row := range result {
-			tables = append(tables, row.TableName)
-		}
+		// SHOW TABLES returns a driver/database-dependent column name
+		// (for example, Tables_in_test-newapi). Scan by column position so
+		// the result does not depend on that generated name.
+		return r.scanSingleStringColumn("SHOW TABLES")
 	case "postgres", "gaussdb":
 		var result []struct {
 			TableName string `gorm:"column:tablename"`
@@ -80,6 +74,33 @@ func (r *ReadOnlyDB) ListTables() ([]string, error) {
 		}
 	default:
 		return nil, fmt.Errorf("unsupported driver for listing tables: %s", r.config.Driver)
+	}
+
+	return tables, nil
+}
+
+// scanSingleStringColumn reads a one-column result set without relying on its
+// database-generated column name. MySQL's SHOW TABLES column is named after the
+// selected database (for example, Tables_in_test-newapi), so a static GORM
+// struct tag cannot match it. Scanning through database/sql also normalizes
+// driver-returned []byte values to strings.
+func (r *ReadOnlyDB) scanSingleStringColumn(query string) ([]string, error) {
+	rows, err := r.db.Raw(query).Rows()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tables: %w", err)
+	}
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			return nil, fmt.Errorf("failed to list tables: %w", err)
+		}
+		tables = append(tables, tableName)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list tables: %w", err)
 	}
 
 	return tables, nil

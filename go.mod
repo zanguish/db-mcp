@@ -3,6 +3,7 @@ module github.com/zanguish/db-mcp
 go 1.25.7
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/spf13/cobra v1.10.2
 	gorm.io/driver/clickhouse v0.7.0
