@@ -26,7 +26,7 @@ install: build
 	fi
 	@echo "Installing to $(GOPATH)/bin..."
 	@mkdir -p "$(GOPATH)/bin"
-	@cp $(BINARY) "$(GOPATH)/bin/$(BINARY)."
+	@cp $(BINARY) "$(GOPATH)/bin/$(BINARY)"
 	@echo "[OK] Installed to $(GOPATH)/bin/$(BINARY)"
 
 # 卸载
@@ -36,7 +36,7 @@ uninstall:
 		exit 1; \
 	fi
 	@echo "Uninstalling..."
-	@rm -f "$(GOPATH)/bin/$(BINARY)."
+	@rm -f "$(GOPATH)/bin/$(BINARY)"
 	@echo "[OK] Uninstalled from $(GOPATH)/bin/$(BINARY)"
 
 # 清理构建产物
